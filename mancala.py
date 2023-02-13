@@ -1,6 +1,7 @@
 import pyspiel
 import random
 import numpy as np
+import math
 
 
 def epsilon_greedy(state, legal_actions, Q): 
@@ -13,56 +14,76 @@ def epsilon_greedy(state, legal_actions, Q):
             max_action, max_Q = action, cur_Q
     return max_action 
 
-def sarsa(state, obs, legal_actions, Q, prev_R, prev_S, prev_A, alpha=0.9, discount=0.9, first_time=False): 
-    action = epsilon_greedy(state, legal_actions, Q)
-    if not first_time: 
-        prev_Q = Q.get((str(prev_S), prev_A), 0)
-        Q[(str(prev_S), prev_A)] = prev_Q + alpha * (prev_R + discount * Q.get((str(obs), action), 0) - prev_Q)
-    return action, obs
+def calc_scores(state): 
+    obs = state.observation_tensor(0)
+    your_score, opp_score = sum(obs[1:8]), sum([obs[0]] + obs[8:])
+    return your_score, opp_score
 
-def reward(before_S: list, after_S: list, state): 
-    turn_bonus = 10 if state.current_player() == 0 else 0 
-    my_score_after, opp_score_after = after_S[7], after_S[0]
-    my_score_before, opp_score_before = before_S[7], before_S[0]
-    capture_bonus = my_score_after - my_score_before 
-    my_marbles_before, opp_marbles_before = sum(before_S[1:7]), sum(before_S[8:])
-    my_marbles_after, opp_marbles_after = sum(after_S[1:7]), sum(after_S[8:])
-    marble_diff_reward = 0.5 * ((my_marbles_after - opp_marbles_after) - (my_marbles_before - opp_marbles_before))
-    outcome_bonus = 0.5 * (my_score_after - opp_score_after)
-    win_bonus = 10 if state.is_terminal() else -10
-    return turn_bonus + capture_bonus + win_bonus + marble_diff_reward + outcome_bonus
+def simulate(actions, N_sa, N_s, state, Q):
+    if state.is_terminal(): 
+        your_score, opp_score = calc_scores(state)
+        return your_score - opp_score, 'none'
+    action_values = []
+    action_idx = []
+    for a in actions: 
+        UCB = (1 / math.sqrt(2)) 
+        Ns = N_s.get(state, 0)
+        Nsa = N_sa.get((state, a), 0)
+        if Nsa == 0: UCB = float('inf')
+        else: UCB *= math.sqrt(math.log(Ns) / Nsa)
+        action_values.append(Q.get((state, a), 0) + UCB)
+        action_idx.append(a)
+    action_values, action_idx = np.array(action_values), np.array(action_idx)
+    max_idxs = action_idx[action_values == np.max(action_values)]
+    action = random.choice(max_idxs)
+
+    state.apply_action(action)
+    q = 0 + 1 * simulate(state.legal_actions(), N_s, N_sa, state, Q)[0] # no reward for now? 
+    N_s[state] = N_s.get(state, 0) + 1
+    N_sa[(state, action)] = N_sa.get((state, action), 0) + 1
+    Q[(state, action)] = (q - Q.get((state, action), 0)) / N_sa.get((state, action), 0) + Q.get((state, action), 0)
+    return q, action 
+
+# TODO: make this into class 
+def MCTS(Q, N_sa, N_s, prev_game_state): 
+    game_scores = []
+    actions = []
+    for i in range(50): # num simulations of games
+        # select action 
+        game, state = pyspiel.deserialize_game_and_state(prev_game_state)
+        legal_actions = state.legal_actions()
+        res_score, res_action = simulate(legal_actions, N_sa, N_s, state, Q)
+        game_scores.append(res_score)
+        actions.append(res_action) # somehow i am not using the q value lmao? 
+    # print(game_scores, actions)
+    return actions[np.argmax(game_scores)]
+
+
+
 
 def main(): 
-    # TODO: SARSA modification idea - store only simpler state info like marbles on each side, total marbles, to reduce state space
     mancala = pyspiel.load_game("mancala")
-    Q = dict()
-    win, total = 0, 1000000
+    win, total = 0, 10000
+    Q, N_sa, N_s = dict(), dict(), dict()
     for i in range(total): 
         state = mancala.new_initial_state()
-        prev_S, prev_A, prev_R = None, None, None 
         while not state.is_terminal(): 
             legal_actions = state.legal_actions()
             # we are player 0 
             if state.current_player() == 0: 
-                first_time = not (prev_S and prev_A and prev_R)
-                obs = state.observation_tensor() 
-                if not first_time: prev_R = reward(prev_S, state.observation_tensor(), state)
-                prev_A, prev_S = sarsa(state, obs, legal_actions, Q, prev_R, prev_S, prev_A, first_time=first_time)
-                state.apply_action(prev_A)
-
+                prev_game_state = pyspiel.serialize_game_and_state(mancala, state)	
+                action = MCTS(Q, N_sa, N_s, prev_game_state)
+                state.apply_action(action)
             else: # random policy 
                 action = random.choice(legal_actions)
                 state.apply_action(action)
-        # last sarsa update 
-        final_state = state.observation_tensor(0)   
-        prev_R = reward(prev_S, final_state, state) 
-        Q[(str(prev_S), prev_A)] = Q.get((str(prev_S), prev_A), 0) + 0.9 * (prev_R - Q.get((str(prev_S), prev_A), 0))
 
+        final_state = state.observation_tensor(0)
         your_score, opp_score = sum(final_state[1:8]), sum([final_state[0]] + final_state[8:])
         # print('Final Score - ', "You: ", your_score, "Opp: ", opp_score)
         if your_score > opp_score: win += 1
+        if i % 20 == 0: print("Win rate at iteration", i + 1, win / (i+1))
     print(win / total)
-    # print(Q)
 
 if __name__ == "__main__":
     main()
