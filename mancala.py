@@ -5,13 +5,11 @@ from QLearning import QLearningAgent
 import matplotlib.pyplot as plt 
 
 
-
-
 def solve_MCTS(): 
     MCTS = MCTSAgent(50)
     mancala = pyspiel.load_game("mancala")
-    win, total = 0, 1000
-    acc_y, num_games_x = [], []
+    wins, total = 0, 10000
+    iteration_num, win_rate = [], []
     for i in range(1, total+1): 
         state = mancala.new_initial_state()
         while not state.is_terminal(): 
@@ -28,16 +26,17 @@ def solve_MCTS():
         final_state = state.observation_tensor(0)
         your_score, opp_score = sum(final_state[1:8]), sum([final_state[0]] + final_state[8:])
         if your_score > opp_score: win += 1
-        if (i) % 20 == 0: print("Win rate at iteration", i, win / (i))
-        # add to plot 
-        acc_y.append(win / i)
-        num_games_x.append(i)
+        if i % 100 == 0: 
+            print("Win rate at iteration", i, wins / 100)
+            iteration_num.append(i)
+            win_rate.append(wins / 100)
+            wins = 0
 
-    print(win / total)
-    plt.plot(num_games_x, acc_y, '-')
+
+    plt.plot(iteration_num, win_rate, '-')
     ax = plt.gca()
     ax.set_ylim([0, 1.1])
-    ax.set_ylabel("Percentage of wins")
+    ax.set_ylabel("Win rate over past 100 games")
     ax.set_xlabel("Number of games played")
     ax.set_title("MCTS Agent vs Random Policy")
     plt.show()
