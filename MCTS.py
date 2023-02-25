@@ -5,10 +5,11 @@ import copy
 import pyspiel
 
 class MCTSAgent(): 
-    def __init__(self):
+    def __init__(self, num_sims):
         self.Q = dict()
         self.N_sa = dict()
         self.N_s = dict()
+        self.num_sims = num_sims 
 
     def calc_scores(self, state): 
         obs = state.observation_tensor(0)
@@ -45,7 +46,7 @@ class MCTSAgent():
 
     def MCTS(self, prev_game_state): 
         actions = []
-        for i in range(50): # num simulations of games
+        for i in range(self.num_sims): # num simulations of games
             # select action
             game, state = pyspiel.deserialize_game_and_state(prev_game_state)
             legal_actions = state.legal_actions()

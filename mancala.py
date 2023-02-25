@@ -1,21 +1,14 @@
 import pyspiel
 import random
 from MCTS import MCTSAgent
+from QLearning import QLearningAgent
 import matplotlib.pyplot as plt 
 
 
-def epsilon_greedy(state, legal_actions, Q): 
-    if random.random() < 0.1: 
-        return random.choice(legal_actions)
-    max_action, max_Q = None, float('-inf')
-    for action in legal_actions: 
-        cur_Q = Q.get((str(state), action), 0)
-        if cur_Q > max_Q: 
-            max_action, max_Q = action, cur_Q
-    return max_action 
+
 
 def solve_MCTS(): 
-    MCTS = MCTSAgent()
+    MCTS = MCTSAgent(50)
     mancala = pyspiel.load_game("mancala")
     win, total = 0, 1000
     acc_y, num_games_x = [], []
@@ -49,9 +42,14 @@ def solve_MCTS():
     ax.set_title("MCTS Agent vs Random Policy")
     plt.show()
 
+def solve_Q_Learning(): 
+    QLearning = QLearningAgent()
+    QLearning.QLearning()
+    QLearning.play_games()
 
 def main(): 
-    solve_MCTS()
+    # solve_MCTS()
+    solve_Q_Learning()
 
 if __name__ == "__main__":
     main()
