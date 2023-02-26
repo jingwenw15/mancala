@@ -14,8 +14,8 @@ class QLearningAgent():
         self.Q = defaultdict(int)
         self.alpha = 0.4
         self.gamma = 0.9
-        self.num_sims = 1000000
-        self.num_games = 100000
+        self.num_sims = 5000000
+        self.num_games = 1000
 
     def calc_scores(self, state): 
         obs = state.observation_tensor(0)
@@ -108,14 +108,14 @@ class QLearningAgent():
         for game in range(1, self.num_games + 1): 
             state = mancala.new_initial_state()
             while not state.is_terminal(): 
-                if state.current_player == 0: 
+                if state.current_player() == 0: 
                     actions, action_Q_vals = [], []
                     for action in state.legal_actions(): 
                         cur_Q = self.Q[(str(state), action)]
                         actions.append(action)
                         action_Q_vals.append(cur_Q)
                     actions = np.array(actions)
-                    return random.choice(list(actions[abs(action_Q_vals - np.max(action_Q_vals)) < 1e-6])) # choose random action if tied 
+                    state.apply_action(random.choice(list(actions[abs(action_Q_vals - np.max(action_Q_vals)) < 1e-6]))) # choose random action if tied 
                 else: 
                     actn = self.random_agent(state)
                     state.apply_action(actn)
