@@ -1,9 +1,7 @@
 import gym
-from stable_baselines3 import DQN, A2C
 import numpy as np
 from gym import spaces
 import pyspiel
-from stable_baselines3.common.env_checker import check_env
 import random
 
 class MancalaEnv(gym.Env):
@@ -15,22 +13,21 @@ class MancalaEnv(gym.Env):
         super().__init__()
         # Define action and observation space
         self.action_space = spaces.Discrete(6)
-        # Example for using image as input (channel-first; channel-last also works):
         self.observation_space = spaces.MultiDiscrete([48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48])
         self.mancala = pyspiel.load_game("mancala")
         self.pyspiel_state = self.mancala.new_initial_state() 
         
     def step(self, action):
+        # return valid_actions array of 1s and 0s in info dict 
         reward = 0 
         while self.pyspiel_state.current_player() == 0: 
             if action in self.pyspiel_state.legal_actions(): 
                 self.pyspiel_state.apply_action(action)
-            else: 
+            else: # illegal action taken 
                 reward = -1000
                 return np.array([num for num in self.pyspiel_state.observation_tensor(0)]), reward, True, {}
 
             if self.pyspiel_state.is_terminal(): 
-
                 break 
 
         # take opponent step
@@ -40,6 +37,7 @@ class MancalaEnv(gym.Env):
         if self.pyspiel_state.is_terminal(): 
             your_score, opp_score = self.calc_scores(self.pyspiel_state)
             reward = your_score - opp_score
+
         obs_array = np.array([num for num in self.pyspiel_state.observation_tensor(0)])
         return obs_array, reward, self.pyspiel_state.is_terminal(), {}
 
