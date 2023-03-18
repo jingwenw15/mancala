@@ -20,20 +20,18 @@ class MancalaEnv(gym.Env):
     def step(self, action):
         # return valid_actions array of 1s and 0s in info dict 
         reward = 0 
-        while self.pyspiel_state.current_player() == 0: 
-            if action in self.pyspiel_state.legal_actions(): 
-                self.pyspiel_state.apply_action(action)
+        if self.pyspiel_state.current_player() == 0: 
+            if action + 1 in self.pyspiel_state.legal_actions(): 
+                self.pyspiel_state.apply_action(action + 1)
             else: # illegal action taken 
                 reward = -1000
                 return np.array([num for num in self.pyspiel_state.observation_tensor(0)]), reward, True, {}
-
-            if self.pyspiel_state.is_terminal(): 
-                break 
 
         # take opponent step
         while self.pyspiel_state.current_player() == 1 and not self.pyspiel_state.is_terminal(): 
             action = random.choice(self.pyspiel_state.legal_actions())
             self.pyspiel_state.apply_action(action)
+            
         if self.pyspiel_state.is_terminal(): 
             your_score, opp_score = self.calc_scores(self.pyspiel_state)
             reward = your_score - opp_score
@@ -47,7 +45,6 @@ class MancalaEnv(gym.Env):
         return your_score, opp_score
     
     def reset(self):
-        ...
         self.pyspiel_state = self.mancala.new_initial_state() 
         return np.array(self.pyspiel_state.observation_tensor(0)) # reward, done, info can't be included
     

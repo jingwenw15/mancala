@@ -5,16 +5,18 @@ import copy
 import pyspiel
 
 class MCTSAgent(): 
-    def __init__(self, num_sims):
+    def __init__(self, num_sims, player_one=True):
         self.Q = dict()
         self.N_sa = dict()
         self.N_s = dict()
         self.num_sims = num_sims 
+        self.player_one = player_one
 
     def calc_scores(self, state): 
         obs = state.observation_tensor(0)
-        your_score, opp_score = sum(obs[1:8]), sum([obs[0]] + obs[8:])
-        return your_score, opp_score
+        player_1_score, player_2_score = sum(obs[1:8]), sum([obs[0]] + obs[8:])
+        if self.player_one: return player_1_score, player_2_score  
+        return player_2_score, player_1_score
     
     def simulate(self, actions, state):
         if state.is_terminal(): 
@@ -61,3 +63,5 @@ class MCTSAgent():
         
 
         return actions[np.argmax(action_scores)]
+    
+    
