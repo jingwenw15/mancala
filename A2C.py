@@ -1,7 +1,6 @@
 from stable_baselines3 import a2c, A2C, DQN, dqn, common
 from stable_baselines3.common.env_checker import check_env
 from MancalaEnv import MancalaEnv
-import matplotlib.pyplot as plt 
 import numpy as np
 import pyspiel
 import random 
