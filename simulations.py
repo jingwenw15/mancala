@@ -140,7 +140,6 @@ def play_Random(player_2):
     print("Total win rate out of 1000 games", total_wins / total)
     print("Second player number of wins", opp_wins / total)
 
-
 def solve_Q_Learning(): 
     QLearning = QLearningAgent()
     QLearning.QLearning(load_data=False)
@@ -237,7 +236,7 @@ def play_Q_Learning(player_two):
 def plot_Q_Training(): 
     QLearning = QLearningAgent()
     QLearning.plot_training()
-    
+
 def main(): 
     # play_MCTS('A2C')
     # solve_Q_Learning()
